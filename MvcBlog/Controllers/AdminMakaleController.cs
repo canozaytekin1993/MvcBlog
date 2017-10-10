@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Web;
+using System.Web.Helpers;
 using System.Web.Mvc;
 using MvcBlog.Models;
 
@@ -27,23 +29,41 @@ namespace MvcBlog.Controllers
         // GET: AdminMakale/Create
         public ActionResult Create()
         {
+            ViewBag.KategoriId = new SelectList(db.Kategoris, "KategoriId", "KategoriAdi");
             return View();
         }
 
         // POST: AdminMakale/Create
         [HttpPost]
-        public ActionResult Create(FormCollection collection)
+        public ActionResult Create(Makale makale, string etiketler, HttpPostedFileBase Foto)
         {
-            try
+            if(ModelState.IsValid)
             {
-                // TODO: Add insert logic here
+                if (Foto != null)
+                {
+                    WebImage img = new WebImage(Foto.InputStream);
+                    FileInfo fotoinfo = new FileInfo(Foto.FileName);
 
+                    string newfoto = Guid.NewGuid().ToString() + fotoinfo.Extension;
+                    img.Resize(800, 350);
+                    img.Save("~/Uploads/MakaleFoto/" + newfoto);
+                    makale.Foto = "/Uploads/MakaleFoto/" + newfoto;
+                }
+                if (etiketler != null)
+                {
+                    string[] etiketdizi = etiketler.Split(',');
+                    foreach (var i in etiketdizi)
+                    {
+                        var yenietiket = new Etiket {EtiketAdi = i};
+                        db.Etikets.Add(yenietiket);
+                        makale.Etikets.Add(yenietiket);
+                    }
+                }
+                db.Makales.Add(makale);
+                db.SaveChanges();
                 return RedirectToAction("Index");
             }
-            catch
-            {
-                return View();
-            }
+                return View(makale);
         }
 
         // GET: AdminMakale/Edit/5
